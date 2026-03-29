@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="期限付きタスク管理。毎朝・毎夕に通知でリマインド。">
+  <meta name="theme-color" content="#7c3aed">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TaskFlow">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.svg">
+  <title>TaskFlow</title>
+
+  <!-- Google Fonts: Noto Sans JP -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ===============================
+       CSS Variables & Reset
+    =============================== */
+    :root {
+      --bg-primary: #1a1a2e;
+      --bg-secondary: #16213e;
+      --bg-card: #0f3460;
+      --bg-card-hover: #1a4a7a;
+      --bg-input: #0f3460;
+      --accent: #7c3aed;
+      --accent-light: #a78bfa;
+      --accent-dark: #5b21b6;
+      --accent-hover: #8b5cf6;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border: #1e3a5f;
+      --border-light: #2d4a6e;
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.15);
+      --warning: #f97316;
+      --warning-bg: rgba(249, 115, 22, 0.15);
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.15);
+      --info: #3b82f6;
+      --info-bg: rgba(59, 130, 246, 0.15);
+      --priority-high: #ef4444;
+      --priority-medium: #f97316;
+      --priority-low: #10b981;
+      --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+      --radius: 16px;
+      --radius-sm: 8px;
+      --radius-xs: 6px;
+      --nav-height: 72px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f0f2f8;
+      --bg-secondary: #e8eaf6;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f8f9ff;
+      --bg-input: #ffffff;
+      --text-primary: #1e1b4b;
+      --text-secondary: #4c4f7d;
+      --text-muted: #9095c0;
+      --border: #dde1f5;
+      --border-light: #c8cef0;
+      --shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    /* ===============================
+       App Shell
+    =============================== */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      max-width: 480px;
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ===============================
+       Header
+    =============================== */
+    .app-header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 20px 12px;
+      padding-top: calc(16px + env(safe-area-inset-top, 0px));
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+
+    .app-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .app-logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .app-logo-text {
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent-light), #c4b5fd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: all var(--transition);
+    }
+
+    .icon-btn:hover, .icon-btn:active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+      transform: scale(0.95);
+    }
+
+    .header-date {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* ===============================
+       Filter Tabs
+    =============================== */
+    .filter-bar {
+      background: var(--bg-secondary);
+      padding: 0 16px 12px;
+      flex-shrink: 0;
+    }
+
+    .filter-tabs {
+      display: flex;
+      background: var(--bg-primary);
+      border-radius: 12px;
+      padding: 4px;
+      gap: 2px;
+    }
+
+    .filter-tab {
+      flex: 1;
+      padding: 8px 4px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      border-radius: 9px;
+      transition: all var(--transition);
+      white-space: nowrap;
+    }
+
+    .filter-tab.active {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
+    }
+
+    /* ===============================
+       Main Content
+    =============================== */
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 16px;
+      padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px);
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .main-content::-webkit-scrollbar { display: none; }
+
+    /* ===============================
+       Stats Bar
+    =============================== */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      text-align: center;
+      border: 1px solid var(--border);
+      transition: transform var(--transition);
+    }
+
+    .stat-card:active { transform: scale(0.97); }
+
+    .stat-number {
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .stat-card.overdue .stat-number { color: var(--danger); }
+    .stat-card.today .stat-number { color: var(--warning); }
+    .stat-card.done .stat-number { color: var(--success); }
+
+    /* ===============================
+       Section Headers
+    =============================== */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      margin-top: 4px;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section-badge {
+      background: var(--accent);
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 20px;
+    }
+
+    /* ===============================
+       Task Cards
+    =============================== */
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .task-card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all var(--transition);
+      position: relative;
+      overflow: hidden;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .task-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--accent);
+      border-radius: 0 2px 2px 0;
+    }
+
+    .task-card.priority-high::before { background: var(--priority-high); }
+    .task-card.priority-medium::before { background: var(--priority-medium); }
+    .task-card.priority-low::before { background: var(--priority-low); }
+
+    .task-card.overdue {
+      border-color: rgba(239, 68, 68, 0.4);
+      background: linear-gradient(135deg, var(--bg-card), rgba(239, 68, 68, 0.05));
+    }
+
+    .task-card.due-today {
+      border-color: rgba(249, 115, 22, 0.4);
+      background: linear-gradient(135deg, var(--bg-card), rgba(249, 115, 22, 0.05));
+    }
+
+    .task-card.completed {
+      opacity: 0.6;
+    }
+
+    .task-card.completed .task-title {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    .task-card:active {
+      transform: scale(0.99);
+    }
+
+    .task-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .task-checkbox {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid var(--border-light);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all var(--transition);
+      background: var(--bg-input);
+      margin-top: 1px;
+    }
+
+    .task-checkbox.checked {
+      background: var(--success);
+      border-color: var(--success);
+    }
+
+    .task-checkbox.checked::after {
+      content: '✓';
+      color: white;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .task-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .task-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      word-break: break-word;
+    }
+
+    .task-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      margin-top: 6px;
+    }
+
+    .task-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .badge-category {
+      background: var(--info-bg);
+      color: var(--info);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .badge-priority-high {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .badge-priority-medium {
+      background: var(--warning-bg);
+      color: var(--warning);
+      border: 1px solid rgba(249, 115, 22, 0.3);
+    }
+
+    .badge-priority-low {
+      background: var(--success-bg);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .badge-repeat {
+      background: rgba(124, 58, 237, 0.15);
+      color: var(--accent-light);
+      border: 1px solid rgba(124, 58, 237, 0.3);
+    }
+
+    .task-deadline {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .task-deadline.overdue { color: var(--danger); font-weight: 600; }
+    .task-deadline.due-today { color: var(--warning); font-weight: 600; }
+
+    .task-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .task-action-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: var(--text-muted);
+      transition: all var(--transition);
+    }
+
+    .task-action-btn:hover, .task-action-btn:active {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      transform: scale(0.9);
+    }
+
+    .task-action-btn.delete:hover, .task-action-btn.delete:active {
+      color: var(--danger);
+    }
+
+    /* ===============================
+       Empty State
+    =============================== */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    .empty-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .empty-desc {
+      font-size: 13px;
+    }
+
+    /* ===============================
+       Bottom Navigation
+    =============================== */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 480px;
+      height: calc(var(--nav-height) + var(--safe-bottom));
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      padding-top: 8px;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 6px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      color: var(--text-muted);
+      transition: all var(--transition);
+      border-radius: 12px;
+      margin: 0 4px;
+      position: relative;
+    }
+
+    .nav-item:active { transform: scale(0.93); }
+
+    .nav-item.active { color: var(--accent-light); }
+
+    .nav-icon {
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .nav-label {
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .nav-item.center-btn {
+      margin-top: -24px;
+    }
+
+    .nav-add-btn {
+      width: 52px;
+      height: 52px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: white;
+      box-shadow: 0 4px 16px rgba(124, 58, 237, 0.5);
+      transition: all var(--transition);
+      line-height: 1;
+    }
+
+    .nav-item.center-btn:active .nav-add-btn {
+      transform: rotate(45deg) scale(0.95);
+    }
+
+    /* ===============================
+       Modal / Sheet
+    =============================== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 200;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal-sheet {
+      width: 100%;
+      max-width: 480px;
+      background: var(--bg-secondary);
+      border-radius: 24px 24px 0 0;
+      padding: 0;
+      max-height: 92dvh;
+      overflow-y: auto;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+      padding-bottom: calc(var(--safe-bottom) + 16px);
+    }
+
+    .modal-overlay.open .modal-sheet {
+      transform: translateY(0);
+    }
+
+    .modal-sheet::-webkit-scrollbar { display: none; }
+
+    .modal-handle {
+      width: 40px;
+      height: 4px;
+      background: var(--border-light);
+      border-radius: 2px;
+      margin: 12px auto 8px;
+    }
+
+    .modal-header {
+      padding: 8px 20px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .modal-close {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: all var(--transition);
+    }
+
+    .modal-close:hover { background: var(--danger); color: white; }
+
+    .modal-body {
+      padding: 0 20px;
+    }
+
+    /* ===============================
+       Form Elements
+    =============================== */
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      letter-spacing: 0.02em;
+    }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 15px;
+      transition: border-color var(--transition);
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+    }
+
+    .form-textarea {
+      resize: none;
+      height: 80px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .form-select option {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    /* Chip selectors */
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      padding: 7px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all var(--transition);
+      white-space: nowrap;
+    }
+
+    .chip.selected {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .chip:active { transform: scale(0.95); }
+
+    /* Category with color dot */
+    .category-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .cat-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* ===============================
+       Primary Button
+    =============================== */
+    .btn-primary {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 16px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all var(--transition);
+      letter-spacing: 0.02em;
+      margin-top: 8px;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+      opacity: 0.9;
+    }
+
+    .btn-secondary {
+      width: 100%;
+      padding: 13px;
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all var(--transition);
+      margin-top: 8px;
+    }
+
+    .btn-secondary:active { opacity: 0.7; transform: scale(0.98); }
+
+    /* ===============================
+       Settings Page
+    =============================== */
+    .settings-page {
+      display: none;
+      padding: 16px;
+      padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px);
+      overflow-y: auto;
+      height: 100%;
+    }
+
+    .settings-page.active { display: block; }
+
+    .settings-section {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .settings-section-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 14px 16px 8px;
+    }
+
+    .settings-row {
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      border-top: 1px solid var(--border);
+      gap: 14px;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+
+    .settings-row:first-of-type { border-top: none; }
+    .settings-row:active { background: var(--bg-primary); }
+
+    .settings-row-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .settings-row-content {
+      flex: 1;
+    }
+
+    .settings-row-title {
+      font-size: 15px;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .settings-row-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Toggle Switch */
+    .toggle {
+      position: relative;
+      width: 48px;
+      height: 28px;
+      flex-shrink: 0;
+    }
+
+    .toggle input { display: none; }
+
+    .toggle-track {
+      width: 100%;
+      height: 100%;
+      background: var(--border-light);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background var(--transition);
+      position: relative;
+    }
+
+    .toggle input:checked + .toggle-track {
+      background: var(--accent);
+    }
+
+    .toggle-track::after {
+      content: '';
+      width: 22px;
+      height: 22px;
+      background: white;
+      border-radius: 50%;
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      transition: transform var(--transition);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+
+    .toggle input:checked + .toggle-track::after {
+      transform: translateX(20px);
+    }
+
+    /* ===============================
+       Category Manager
+    =============================== */
+    .category-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .category-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+
+    .category-item .cat-dot {
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+    }
+
+    .category-item-name {
+      flex: 1;
+      font-size: 14px;
+    }
+
+    .category-delete-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px;
+      transition: color var(--transition);
+    }
+
+    .category-delete-btn:hover { color: var(--danger); }
+
+    /* ===============================
+       Notification Banner
+    =============================== */
+    .notif-banner {
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(167, 139, 250, 0.1));
+      border: 1px solid rgba(124, 58, 237, 0.3);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .notif-banner-icon { font-size: 24px; flex-shrink: 0; }
+
+    .notif-banner-content { flex: 1; }
+
+    .notif-banner-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .notif-banner-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .notif-banner-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius-xs);
+      padding: 7px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all var(--transition);
+    }
+
+    .notif-banner-btn:active { transform: scale(0.95); }
+
+    /* ===============================
+       Toast
+    =============================== */
+    .toast-container {
+      position: fixed;
+      top: calc(env(safe-area-inset-top, 0px) + 70px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: calc(100% - 32px);
+      max-width: 420px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: #1e293b;
+      color: white;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: toastIn 0.3s ease-out, toastOut 0.3s ease-in 2.7s forwards;
+      border-left: 3px solid var(--accent);
+    }
+
+    .toast.success { border-left-color: var(--success); }
+    .toast.error { border-left-color: var(--danger); }
+    .toast.warning { border-left-color: var(--warning); }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(-10px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes toastOut {
+      from { opacity: 1; transform: translateY(0) scale(1); }
+      to { opacity: 0; transform: translateY(-10px) scale(0.95); }
+    }
+
+    /* ===============================
+       Color Picker (category)
+    =============================== */
+    .color-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 4px 0;
+    }
+
+    .color-swatch {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 3px solid transparent;
+      transition: all var(--transition);
+      position: relative;
+    }
+
+    .color-swatch.selected {
+      border-color: var(--text-primary);
+      transform: scale(1.15);
+    }
+
+    /* ===============================
+       Swipe to delete indicator
+    =============================== */
+    .task-swipe-wrapper {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius);
+    }
+
+    /* ===============================
+       Responsive Tweaks
+    =============================== */
+    @media (min-width: 481px) {
+      #app { box-shadow: var(--shadow); }
+      .bottom-nav { border-radius: 0; }
+    }
+
+    /* ===============================
+       Accessibility
+    =============================== */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+
+    /* ===============================
+       Loading Spinner
+    =============================== */
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===============================
+       Tab Pages
+    =============================== */
+    .page {
+      display: none;
+      flex: 1;
+      overflow: hidden;
+      flex-direction: column;
+    }
+
+    .page.active {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="header-top">
+      <div class="app-logo">
+        <div class="app-logo-icon">✅</div>
+        <span class="app-logo-text">TaskFlow</span>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="searchBtn" title="検索" aria-label="検索">🔍</button>
+        <button class="icon-btn" id="themeBtn" title="テーマ切替" aria-label="テーマ切替">🌙</button>
+      </div>
+    </div>
+    <div class="header-date" id="headerDate"></div>
+  </header>
+
+  <!-- ===== HOME PAGE ===== -->
+  <div class="page active" id="homePage">
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="filter-tabs" role="tablist">
+        <button class="filter-tab active" data-filter="quick" role="tab">⚡ すぐやる</button>
+        <button class="filter-tab" data-filter="today" role="tab">🕐 今日中</button>
+        <button class="filter-tab" data-filter="twoweeks" role="tab">📅 2週間</button>
+        <button class="filter-tab" data-filter="all" role="tab">すべて</button>
+        <button class="filter-tab" data-filter="done" role="tab">完了</button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="homeContent">
+
+      <!-- Notification Banner (shown if not permitted) -->
+      <div class="notif-banner" id="notifBanner" style="display:none;">
+        <div class="notif-banner-icon">🔔</div>
+        <div class="notif-banner-content">
+          <div class="notif-banner-title">通知を有効にする</div>
+          <div class="notif-banner-desc">朝9時・夕17時にタスクをお知らせします</div>
+        </div>
+        <button class="notif-banner-btn" id="enableNotifBtn">許可する</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-bar">
+        <div class="stat-card overdue">
+          <div class="stat-number" id="statOverdue">0</div>
+          <div class="stat-label">期限切れ</div>
+        </div>
+        <div class="stat-card today">
+          <div class="stat-number" id="statToday">0</div>
+          <div class="stat-label">今日まで</div>
+        </div>
+        <div class="stat-card done">
+          <div class="stat-number" id="statDone">0</div>
+          <div class="stat-label">完了済み</div>
+        </div>
+      </div>
+
+      <!-- Task List -->
+      <div id="taskListContainer"></div>
+
+    </div>
+  </div>
+
+  <!-- ===== SETTINGS PAGE ===== -->
+  <div class="page" id="settingsPage">
+    <div class="settings-page active" id="settingsContent">
+
+      <div class="settings-section">
+        <div class="settings-section-title">通知設定</div>
+        <div class="settings-row" id="notifStatusRow">
+          <div class="settings-row-icon" style="background: rgba(124,58,237,0.15);">🔔</div>
+          <div class="settings-row-content">
+            <div class="settings-row-title">プッシュ通知</div>
+            <div class="settings-row-desc" id="notifStatusDesc">通知の許可状況を確認中...</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="notifToggle">
+            <div class="toggle-track"></div>
+          </label>
+        </div>
+        <div class="settings-row" id="testNotifRow">
+          <div class="settings-row-icon" style="background: rgba(59,130,246,0.15);">🧪</div>
+          <div class="settings-row-content">
+            <div class="settings-row-title">テスト通知を送信</div>
+            <div class="settings-row-desc">通知が届くか確認できます</div>
+          </div>
+          <span style="color: var(--text-muted)">›</span>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-icon" style="background: rgba(249,115,22,0.15);">🌅</div>
+          <div class="settings-row-content">
+            <div class="settings-row-title">朝の通知時刻</div>
+            <div class="settings-row-desc">今日のタスクをお知らせ</div>
+          </div>
+          <input type="time" id="morningTimeInput" value="09:00"
+            style="background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:14px;cursor:pointer;">
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-icon" style="background: rgba(16,185,129,0.15);">🌇</div>
+          <div class="settings-row-content">
+            <div class="settings-row-title">夕方の通知時刻</div>
+            <div class="settings-row-desc">今日の振り返りをお知らせ</div>
+          </div>
+          <input type="time" id="eveningTimeInput" value="17:00"
+            style="background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:14px;cursor:pointer;">
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">表示設定</div>
+        <div class="settings-row" id="themeSettingRow">
+          <div class="settings-row-icon" style="background: rgba(124,58,237,0.15);">🎨</div>
+          <div class="settings-row-content">
+            <div class="settings-row-title">ダークモード</div>
+            <div class="settings-row-desc">暗い配色で目に優しく</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="darkModeToggle">
+            <div class="toggle-track"></div>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">カテゴリ管理</div>
+        <div class="settings-row" id="manageCategoriesRow" style="cursor:pointer;">
+          <div class="settings-row-icon" style="background: rgba(16,185,129,0.15);">🏷️</div>
+          <div class="settings-row-content">
+            <div class="settings-row-title">カテゴリを管理</div>
+            <div class="settings-row-desc">追加・編集・削除</div>
+          </div>
+          <span style="color: var(--text-muted)">›</span>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">データ管理</div>
+        <div class="settings-row" id="exportRow">
+          <div class="settings-row-icon" style="background: rgba(59,130,246,0.15);">📤</div>
+          <div class="settings-row-content">
+            <div class="settings-row-title">データをエクスポート</div>
+            <div class="settings-row-desc">JSONファイルとしてダウンロード</div>
+          </div>
+          <span style="color: var(--text-muted)">›</span>
+        </div>
+        <div class="settings-row" id="exportCsvRow">
+          <div class="settings-row-icon" style="background: rgba(16,185,129,0.15);">📊</div>
+          <div class="settings-row-content">
+            <div class="settings-row-title">CSVでエクスポート</div>
+            <div class="settings-row-desc">Excelで開けるCSVファイルをダウンロード</div>
+          </div>
+          <span style="color: var(--text-muted)">›</span>
+        </div>
+        <div class="settings-row" id="importRow">
+          <div class="settings-row-icon" style="background: rgba(16,185,129,0.15);">📥</div>
+          <div class="settings-row-content">
+            <div class="settings-row-title">データをインポート</div>
+            <div class="settings-row-desc">JSONファイルから読み込み</div>
+          </div>
+          <span style="color: var(--text-muted)">›</span>
+        </div>
+        <div class="settings-row" id="clearDataRow">
+          <div class="settings-row-icon" style="background: rgba(239,68,68,0.15);">🗑️</div>
+          <div class="settings-row-content">
+            <div class="settings-row-title" style="color:var(--danger)">全データを削除</div>
+            <div class="settings-row-desc">すべてのタスクを削除します</div>
+          </div>
+          <span style="color: var(--text-muted)">›</span>
+        </div>
+      </div>
+
+      <div style="text-align:center; padding: 20px; color: var(--text-muted); font-size: 12px;">
+        TaskFlow v1.0.0<br>
+        <span style="color: var(--accent-light)">期限付きタスク管理 PWA</span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /#app -->
+
+<!-- ===== BOTTOM NAV ===== -->
+<nav class="bottom-nav">
+  <button class="nav-item active" data-page="home" aria-label="ホーム">
+    <span class="nav-icon">🏠</span>
+    <span class="nav-label">ホーム</span>
+  </button>
+  <button class="nav-item center-btn" id="addTaskNavBtn" aria-label="タスク追加">
+    <div class="nav-add-btn">＋</div>
+    <span class="nav-label" style="margin-top:6px; font-size:11px; color:var(--accent-light)">追加</span>
+  </button>
+  <button class="nav-item" data-page="settings" aria-label="設定">
+    <span class="nav-icon">⚙️</span>
+    <span class="nav-label">設定</span>
+  </button>
+</nav>
+
+<!-- ===== TOAST CONTAINER ===== -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ===== ADD/EDIT TASK MODAL ===== -->
+<div class="modal-overlay" id="taskModal" role="dialog" aria-modal="true" aria-label="タスク追加・編集">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2 class="modal-title" id="modalTitle">タスクを追加</h2>
+      <button class="modal-close" id="modalClose" aria-label="閉じる">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="form-group">
+        <label class="form-label" for="taskTitleInput">タスク名 <span style="color:var(--danger)">*</span></label>
+        <input type="text" class="form-input" id="taskTitleInput" placeholder="タスクを入力..." maxlength="100" autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="taskNoteInput">メモ</label>
+        <textarea class="form-textarea" id="taskNoteInput" placeholder="詳細や備考..."></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="taskDeadlineInput">期限日時</label>
+          <input type="datetime-local" class="form-input" id="taskDeadlineInput">
+        </div>
+        <div class="form-group">
+          <label class="form-label">優先度</label>
+          <div class="chip-group" id="priorityChips">
+            <button class="chip" data-value="high">🔴 高</button>
+            <button class="chip selected" data-value="medium">🟡 中</button>
+            <button class="chip" data-value="low">🟢 低</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">カテゴリ</label>
+        <select id="categorySelect" class="form-select">
+          <option value="">カテゴリなし</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">⏱️ 見積もり時間 <span style="font-size:11px;color:var(--text-muted);font-weight:400">（期限を自動設定）</span></label>
+        <div class="chip-group" id="estimateChips">
+          <button class="chip selected" data-value="none">未設定</button>
+          <button class="chip" data-value="quick">⚡ 10分以内</button>
+          <button class="chip" data-value="today">🕐 〜1時間</button>
+          <button class="chip" data-value="twoweeks">📅 〜1日</button>
+        </div>
+        <div id="estimateHint" style="font-size:12px;color:var(--accent-light);margin-top:8px;display:none;"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">繰り返し</label>
+        <div class="chip-group" id="repeatChips">
+          <button class="chip selected" data-value="none">なし</button>
+          <button class="chip" data-value="daily">毎日</button>
+          <button class="chip" data-value="weekly">毎週</button>
+          <button class="chip" data-value="monthly">毎月</button>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="saveTaskBtn">💾 保存する</button>
+      <button class="btn-secondary" id="cancelTaskBtn">キャンセル</button>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== CATEGORY MANAGER MODAL ===== -->
+<div class="modal-overlay" id="categoryModal" role="dialog" aria-modal="true" aria-label="カテゴリ管理">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2 class="modal-title">カテゴリ管理</h2>
+      <button class="modal-close" id="categoryModalClose" aria-label="閉じる">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="categoryListEl" class="category-list"></div>
+
+      <div class="form-group">
+        <label class="form-label">新しいカテゴリを追加</label>
+        <input type="text" class="form-input" id="newCategoryName" placeholder="カテゴリ名..." maxlength="20" style="margin-bottom:10px">
+        <div class="form-label" style="margin-top:10px;">カラー</div>
+        <div class="color-grid" id="colorGrid"></div>
+      </div>
+      <button class="btn-primary" id="addCategoryBtn">＋ カテゴリを追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SEARCH MODAL ===== -->
+<div class="modal-overlay" id="searchModal" role="dialog" aria-modal="true" aria-label="検索">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2 class="modal-title">🔍 タスクを検索</h2>
+      <button class="modal-close" id="searchModalClose" aria-label="閉じる">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <input type="search" class="form-input" id="searchInput" placeholder="タスク名・メモで検索..." autocomplete="off">
+      </div>
+      <div id="searchResults" class="task-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== IMPORT FILE INPUT ===== -->
+<input type="file" id="importFileInput" accept=".json" style="display:none">
+
+<script src="js/app.js"></script>
+</body>
+</html>
