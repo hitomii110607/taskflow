@@ -1412,6 +1412,41 @@
           <button class="chip" data-value="daily">毎日</button>
           <button class="chip" data-value="weekly">毎週</button>
           <button class="chip" data-value="monthly">毎月</button>
+          <button class="chip" data-value="custom">⚙️ カスタム</button>
+        </div>
+        <!-- カスタム繰り返しパネル -->
+        <div id="customRepeatPanel" style="display:none;margin-top:12px;background:var(--bg-input);border-radius:12px;padding:14px;border:1px solid var(--border);">
+          <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <button class="chip selected" data-ctype="weekday">📅 曜日指定</button>
+            <button class="chip" data-ctype="interval">🔢 間隔指定</button>
+          </div>
+          <!-- 曜日選択 -->
+          <div id="weekdayPanel">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">繰り返す曜日を選択（複数可）</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="chip" data-day="1">月</button>
+              <button class="chip" data-day="2">火</button>
+              <button class="chip" data-day="3">水</button>
+              <button class="chip" data-day="4">木</button>
+              <button class="chip" data-day="5">金</button>
+              <button class="chip" data-day="6" style="color:#60a5fa">土</button>
+              <button class="chip" data-day="0" style="color:#f87171">日</button>
+            </div>
+          </div>
+          <!-- 間隔指定 -->
+          <div id="intervalPanel" style="display:none;">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">繰り返す間隔を設定</div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="color:var(--text-secondary)">毎</span>
+              <input type="number" id="intervalValue" min="1" max="999" value="1" class="form-input" style="width:70px;text-align:center;">
+              <select id="intervalUnit" class="form-select" style="width:auto;">
+                <option value="day">日</option>
+                <option value="week">週</option>
+                <option value="month">ヶ月</option>
+              </select>
+              <span style="color:var(--text-secondary)">ごと</span>
+            </div>
+          </div>
         </div>
       </div>
 
