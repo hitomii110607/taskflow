@@ -35,7 +35,8 @@ const CATEGORY_COLORS = [
 ];
 
 const PRIORITY_LABELS = { high: '高', medium: '中', low: '低' };
-const REPEAT_LABELS   = { none: 'なし', daily: '毎日', weekly: '毎週', monthly: '毎月' };
+const REPEAT_LABELS   = { none: 'なし', daily: '毎日', weekly: '毎週', monthly: '毎月', custom: 'カスタム' };
+const DAY_NAMES       = ['日', '月', '火', '水', '木', '金', '土'];
 
 // ===================================================
 //  State
@@ -47,8 +48,9 @@ let currentFilter    = 'quick';
 let editingTaskId    = null;
 let selectedPriority = 'medium';
 let selectedCategory = '';
-let selectedRepeat   = 'none';
-let selectedEstimate = 'none';
+let selectedRepeat       = 'none';
+let selectedCustomRepeat = { type: 'weekday', weekdays: [], interval: 1, unit: 'day' };
+let selectedEstimate     = 'none';
 let selectedColor    = CATEGORY_COLORS[9];
 let swRegistration   = null;
 
@@ -359,6 +361,39 @@ function initUI() {
     document.querySelectorAll('#repeatChips .chip').forEach(c => c.classList.remove('selected'));
     chip.classList.add('selected');
     selectedRepeat = chip.dataset.value;
+    document.getElementById('customRepeatPanel').style.display = selectedRepeat === 'custom' ? 'block' : 'none';
+  });
+
+  // カスタム繰り返しパネル
+  document.getElementById('customRepeatPanel').addEventListener('click', e => {
+    // タイプ切り替え（曜日指定 / 間隔指定）
+    const ctypeBtn = e.target.closest('[data-ctype]');
+    if (ctypeBtn) {
+      document.querySelectorAll('#customRepeatPanel [data-ctype]').forEach(b => b.classList.remove('selected'));
+      ctypeBtn.classList.add('selected');
+      selectedCustomRepeat.type = ctypeBtn.dataset.ctype;
+      document.getElementById('weekdayPanel').style.display  = selectedCustomRepeat.type === 'weekday'  ? 'block' : 'none';
+      document.getElementById('intervalPanel').style.display = selectedCustomRepeat.type === 'interval' ? 'block' : 'none';
+      return;
+    }
+    // 曜日ボタン
+    const dayBtn = e.target.closest('[data-day]');
+    if (dayBtn) {
+      const day = parseInt(dayBtn.dataset.day);
+      if (selectedCustomRepeat.weekdays.includes(day)) {
+        selectedCustomRepeat.weekdays = selectedCustomRepeat.weekdays.filter(d => d !== day);
+        dayBtn.classList.remove('selected');
+      } else {
+        selectedCustomRepeat.weekdays.push(day);
+        dayBtn.classList.add('selected');
+      }
+    }
+  });
+  document.getElementById('intervalValue').addEventListener('input', e => {
+    selectedCustomRepeat.interval = parseInt(e.target.value) || 1;
+  });
+  document.getElementById('intervalUnit').addEventListener('change', e => {
+    selectedCustomRepeat.unit = e.target.value;
   });
 
   // カテゴリは renderCategorySelect() で動的生成（openTaskModal 時）
@@ -475,6 +510,11 @@ function openTaskModal(taskId = null) {
     document.querySelectorAll('#repeatChips .chip').forEach(c => {
       c.classList.toggle('selected', c.dataset.value === selectedRepeat);
     });
+    selectedCustomRepeat = task.customRepeat
+      ? { ...task.customRepeat, weekdays: [...(task.customRepeat.weekdays || [])] }
+      : { type: 'weekday', weekdays: [], interval: 1, unit: 'day' };
+    document.getElementById('customRepeatPanel').style.display = selectedRepeat === 'custom' ? 'block' : 'none';
+    if (selectedRepeat === 'custom') restoreCustomRepeatUI();
 
     // 見積もり時間
     selectedEstimate = task.estimate || 'none';
@@ -488,10 +528,12 @@ function openTaskModal(taskId = null) {
     document.getElementById('taskTitleInput').value    = '';
     document.getElementById('taskNoteInput').value     = '';
     document.getElementById('taskDeadlineInput').value = '';
-    selectedPriority = 'medium';
-    selectedCategory = '';
-    selectedRepeat   = 'none';
-    selectedEstimate = 'none';
+    selectedPriority     = 'medium';
+    selectedCategory     = '';
+    selectedRepeat       = 'none';
+    selectedCustomRepeat = { type: 'weekday', weekdays: [], interval: 1, unit: 'day' };
+    selectedEstimate     = 'none';
+    document.getElementById('customRepeatPanel').style.display = 'none';
     document.querySelectorAll('#priorityChips .chip').forEach(c => {
       c.classList.toggle('selected', c.dataset.value === 'medium');
     });
@@ -550,6 +592,13 @@ function saveTask() {
     finalDeadline = calcDeadlineFromEstimate(selectedEstimate);
   }
 
+  // カスタム繰り返しの最新値を反映
+  if (selectedRepeat === 'custom') {
+    selectedCustomRepeat.interval = parseInt(document.getElementById('intervalValue').value) || 1;
+    selectedCustomRepeat.unit     = document.getElementById('intervalUnit').value;
+  }
+  const customRepeatData = selectedRepeat === 'custom' ? { ...selectedCustomRepeat, weekdays: [...selectedCustomRepeat.weekdays] } : null;
+
   if (editingTaskId) {
     const idx = tasks.findIndex(t => t.id === editingTaskId);
     if (idx !== -1) {
@@ -557,12 +606,13 @@ function saveTask() {
         ...tasks[idx],
         title,
         note,
-        deadline: finalDeadline,
-        priority: selectedPriority,
-        category: selectedCategory,
-        repeat:   selectedRepeat,
-        estimate: selectedEstimate,
-        updatedAt: new Date().toISOString(),
+        deadline:     finalDeadline,
+        priority:     selectedPriority,
+        category:     selectedCategory,
+        repeat:       selectedRepeat,
+        customRepeat: customRepeatData,
+        estimate:     selectedEstimate,
+        updatedAt:    new Date().toISOString(),
       };
       showToast('✅ タスクを更新しました', 'success');
     }
@@ -571,12 +621,13 @@ function saveTask() {
       id:        generateId(),
       title,
       note,
-      deadline:  finalDeadline,
-      priority:  selectedPriority,
-      category:  selectedCategory,
-      repeat:    selectedRepeat,
-      estimate:  selectedEstimate,
-      completed: false,
+      deadline:     finalDeadline,
+      priority:     selectedPriority,
+      category:     selectedCategory,
+      repeat:       selectedRepeat,
+      customRepeat: customRepeatData,
+      estimate:     selectedEstimate,
+      completed:    false,
       completedAt: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -677,6 +728,27 @@ function createRepeatTask(originalTask) {
     case 'daily':   deadline.setDate(deadline.getDate() + 1); break;
     case 'weekly':  deadline.setDate(deadline.getDate() + 7); break;
     case 'monthly': deadline.setMonth(deadline.getMonth() + 1); break;
+    case 'custom': {
+      const cr = originalTask.customRepeat;
+      if (!cr) return null;
+      if (cr.type === 'interval') {
+        const n = cr.interval || 1;
+        if (cr.unit === 'day')   deadline.setDate(deadline.getDate() + n);
+        if (cr.unit === 'week')  deadline.setDate(deadline.getDate() + n * 7);
+        if (cr.unit === 'month') deadline.setMonth(deadline.getMonth() + n);
+      } else if (cr.type === 'weekday' && cr.weekdays && cr.weekdays.length > 0) {
+        // 次の該当曜日を探す（翌日以降）
+        const next = new Date(deadline);
+        next.setDate(next.getDate() + 1);
+        for (let i = 0; i < 7; i++) {
+          if (cr.weekdays.includes(next.getDay())) break;
+          next.setDate(next.getDate() + 1);
+        }
+        return { ...originalTask, id: generateId(), completed: false, completedAt: null,
+          deadline: next.toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+      } else { return null; }
+      break;
+    }
     default: return null;
   }
   return {
@@ -688,6 +760,39 @@ function createRepeatTask(originalTask) {
     createdAt:   new Date().toISOString(),
     updatedAt:   new Date().toISOString(),
   };
+}
+
+// カスタム繰り返しのラベル生成
+function getRepeatLabel(task) {
+  if (task.repeat !== 'custom') return REPEAT_LABELS[task.repeat] || task.repeat;
+  const cr = task.customRepeat;
+  if (!cr) return 'カスタム';
+  if (cr.type === 'interval') {
+    const units = { day: '日', week: '週', month: 'ヶ月' };
+    return `${cr.interval}${units[cr.unit] || cr.unit}ごと`;
+  }
+  if (cr.type === 'weekday' && cr.weekdays && cr.weekdays.length > 0) {
+    return cr.weekdays.slice().sort((a, b) => a - b).map(d => DAY_NAMES[d]).join('・') + '曜';
+  }
+  return 'カスタム';
+}
+
+// カスタム繰り返しUIを保存済みデータから復元
+function restoreCustomRepeatUI() {
+  const cr = selectedCustomRepeat;
+  // タイプボタン
+  document.querySelectorAll('#customRepeatPanel [data-ctype]').forEach(b => {
+    b.classList.toggle('selected', b.dataset.ctype === cr.type);
+  });
+  document.getElementById('weekdayPanel').style.display  = cr.type === 'weekday'  ? 'block' : 'none';
+  document.getElementById('intervalPanel').style.display = cr.type === 'interval' ? 'block' : 'none';
+  // 曜日ボタン
+  document.querySelectorAll('#weekdayPanel [data-day]').forEach(b => {
+    b.classList.toggle('selected', cr.weekdays.includes(parseInt(b.dataset.day)));
+  });
+  // 間隔
+  document.getElementById('intervalValue').value = cr.interval || 1;
+  document.getElementById('intervalUnit').value  = cr.unit || 'day';
 }
 
 // ===================================================
@@ -893,7 +998,7 @@ function createTaskCard(task) {
 
   // 繰り返しバッジ
   const repeatHtml = task.repeat && task.repeat !== 'none'
-    ? `<span class="task-badge badge-repeat">🔁 ${REPEAT_LABELS[task.repeat]}</span>`
+    ? `<span class="task-badge badge-repeat">🔁 ${getRepeatLabel(task)}</span>`
     : '';
 
   // 見積もり時間バッジ
@@ -1104,7 +1209,7 @@ function exportCSV() {
       fmt(t.deadline),
       PRIORITY_LABELS[t.priority] || t.priority || '',
       cat ? cat.name : (t.category || ''),
-      REPEAT_LABELS[t.repeat]     || t.repeat   || 'なし',
+      getRepeatLabel(t) || 'なし',
       t.completed ? '完了' : '未完了',
       fmt(t.completedAt),
       fmt(t.createdAt),
